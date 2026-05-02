@@ -1,36 +1,40 @@
-const userModel=require("../models/User")
+const userModel = require("../models/User")
 const jwt = require("jsonwebtoken")
-const bcrypt=require("bcryptjs")
-async function registerUser(req,res){
-    const {username,email,password,role="user"}=req.body;
-    const isUserAlreadyExists=await userModel.findOne({
-        $or:[
-            {username},
-            {email}
+const bcrypt = require("bcryptjs")
+async function registerUser(req, res) {
+    const { username, email, password, role = "user" } = req.body;
+    const isUserAlreadyExists = await userModel.findOne({
+        $or: [
+            { username },
+            { email }
         ]
     })
-    if(isUserAlreadyExists){
-        return res.status(409).json({message:"User Already Exists"})
+    if (isUserAlreadyExists) {
+        return res.status(409).json({ message: "User Already Exists" })
     }
-    const hash=await bcrypt.hash(password,10)
-    const user=await userModel.create({
+    const hash = await bcrypt.hash(password, 10)
+    const user = await userModel.create({
         username,
         email,
-        password:hash,
+        password: hash,
         role
     })
-    const token=jwt.sign({
-        id:user._id,
-        role:user.role,
-    },process.env.JWT_SECRET)
-    res.cookie("token",token)
+    const token = jwt.sign({
+        id: user._id,
+        role: user.role,
+    }, process.env.JWT_SECRET)
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    });
     res.status(201).json({
-        message:"User Registered Successfully",
-        user:{
-            id:user._id,
-            username:user.username,
-            email:user.email,
-            role:user.role,
+        message: "User Registered Successfully",
+        user: {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
         }
     })
 }
@@ -64,8 +68,8 @@ async function loginUser(req, res) {
 
     res.cookie("token", token, {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
+        secure: true,
+        sameSite: "none"
     });
 
     res.status(200).json({
@@ -81,8 +85,8 @@ async function loginUser(req, res) {
 async function logoutUser(req, res) {
     res.clearCookie("token", {
         httpOnly: true,
-        sameSite: "lax",
-        secure: false, // true in production
+        secure: true,
+        sameSite: "none"
     });
 
     res.status(200).json({
@@ -111,4 +115,4 @@ async function checkAuth(req, res) {
         return res.status(401).json({ message: "Invalid token" });
     }
 }
-module.exports={registerUser,loginUser,logoutUser,checkAuth}
+module.exports = { registerUser, loginUser, logoutUser, checkAuth }
